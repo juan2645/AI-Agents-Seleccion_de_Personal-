@@ -59,7 +59,6 @@ EXAMPLE_JOB_PROFILE = JobProfile(
     requirements=[
         "Experiencia mínima de 2 años en desarrollo Python",
         "Conocimientos sólidos en APIs REST",
-        "Experiencia con frameworks como Django o FastAPI",
         "Conocimientos de bases de datos SQL y NoSQL",
         "Experiencia con Docker y CI/CD"
     ],
