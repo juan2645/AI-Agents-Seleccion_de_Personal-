@@ -1,0 +1,18 @@
+# CONFIGURACIÓN DE EMAILS (OPCIONAL)
+# Para enviar emails reales, copia estas líneas a tu archivo .env
+
+# Configuración SMTP para Gmail
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+EMAIL_USER=tu_email@gmail.com
+EMAIL_PASSWORD=tu_contraseña_de_aplicacion
+
+# Para obtener una contraseña de aplicación en Gmail:
+# 1. Ve a tu cuenta de Google
+# 2. Seguridad > Verificación en 2 pasos (actívala)
+# 3. Contraseñas de aplicación > Generar nueva contraseña
+# 4. Usa esa contraseña en EMAIL_PASSWORD
+
+# Configuración de calendario (opcional)
+CALENDAR_ID=tu_calendar_id
+GOOGLE_CREDENTIALS_FILE=path_to_credentials.json
