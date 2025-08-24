@@ -20,28 +20,34 @@ class CVAnalyzer:
             ("system", """Eres un experto en recursos humanos especializado en análisis de CVs.
             Tu tarea es extraer información estructurada de CVs y evaluar la compatibilidad con un perfil de trabajo.
             
-            INSTRUCCIONES IMPORTANTES:
-            1. Extrae el nombre completo del candidato del CV
-            2. Busca el email en el CV (formato: texto@dominio.com)
-            3. Calcula los años de experiencia basándote en las fechas de trabajo
-            4. Identifica todas las habilidades técnicas mencionadas
-            5. Evalúa el match_score de 0-100 basándote en:
-               - Experiencia requerida vs experiencia del candidato
-               - Habilidades requeridas vs habilidades del candidato
-               - Idiomas requeridos vs idiomas del candidato
+            INSTRUCCIONES CRÍTICAS:
+            1. NOMBRE: Busca el nombre completo al inicio del CV (ej: "CARLOS RODRÍGUEZ")
+            2. EMAIL: Busca el email después de "Email:" (ej: "juan2645@gmail.com")
+            3. TELÉFONO: Busca el teléfono después de "Teléfono:" o "Phone:"
+            4. EXPERIENCIA: Suma los años de experiencia basándote en las fechas (ej: 2022-2024 = 2 años)
+            5. HABILIDADES: Extrae todas las tecnologías mencionadas (Python, Django, etc.)
+            6. IDIOMAS: Busca idiomas mencionados (Español, Inglés, etc.)
+            7. EDUCACIÓN: Extrae títulos académicos mencionados
             
-            Responde SOLO con un JSON válido que contenga:
+            EVALUACIÓN DE MATCH (0-100):
+            - +20 puntos por cada año de experiencia relevante
+            - +15 puntos por cada habilidad requerida que tenga
+            - +10 puntos por cada idioma requerido que hable
+            - -10 puntos por falta de experiencia requerida
+            - -5 puntos por cada habilidad requerida que falte
+            
+            Responde ÚNICAMENTE con un JSON válido:
             {
-                "name": "Nombre completo extraído del CV",
-                "email": "Email encontrado en el CV",
-                "phone": "Teléfono si está disponible",
-                "experience_years": número calculado de años de experiencia,
-                "skills": ["habilidad1", "habilidad2", ...],
-                "languages": ["idioma1", "idioma2", ...],
-                "education": ["título1", "título2", ...],
-                "match_score": puntaje de 0-100,
-                "match_reasons": ["razón1", "razón2", ...],
-                "mismatch_reasons": ["razón1", "razón2", ...]
+                "name": "Nombre extraído del CV",
+                "email": "Email encontrado",
+                "phone": "Teléfono si existe",
+                "experience_years": número de años,
+                "skills": ["habilidad1", "habilidad2"],
+                "languages": ["idioma1", "idioma2"],
+                "education": ["título1"],
+                "match_score": número de 0-100,
+                "match_reasons": ["razón1", "razón2"],
+                "mismatch_reasons": ["razón1", "razón2"]
             }
             """),
             ("human", """
