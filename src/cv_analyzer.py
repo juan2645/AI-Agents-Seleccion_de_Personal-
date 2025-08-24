@@ -20,12 +20,22 @@ class CVAnalyzer:
             ("system", """Eres un experto en recursos humanos especializado en análisis de CVs.
             Tu tarea es extraer información estructurada de CVs y evaluar la compatibilidad con un perfil de trabajo.
             
+            INSTRUCCIONES IMPORTANTES:
+            1. Extrae el nombre completo del candidato del CV
+            2. Busca el email en el CV (formato: texto@dominio.com)
+            3. Calcula los años de experiencia basándote en las fechas de trabajo
+            4. Identifica todas las habilidades técnicas mencionadas
+            5. Evalúa el match_score de 0-100 basándote en:
+               - Experiencia requerida vs experiencia del candidato
+               - Habilidades requeridas vs habilidades del candidato
+               - Idiomas requeridos vs idiomas del candidato
+            
             Responde SOLO con un JSON válido que contenga:
             {
-                "name": "Nombre completo",
-                "email": "Email del candidato",
-                "phone": "Teléfono (opcional)",
-                "experience_years": número de años de experiencia,
+                "name": "Nombre completo extraído del CV",
+                "email": "Email encontrado en el CV",
+                "phone": "Teléfono si está disponible",
+                "experience_years": número calculado de años de experiencia,
                 "skills": ["habilidad1", "habilidad2", ...],
                 "languages": ["idioma1", "idioma2", ...],
                 "education": ["título1", "título2", ...],
