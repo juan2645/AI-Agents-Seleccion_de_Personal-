@@ -83,8 +83,21 @@ class CVAnalyzer:
             
             print(f"🔍 Respuesta del LLM: {response.content[:200]}...")
             
+            # Limpiar la respuesta para extraer solo el JSON
+            content = response.content.strip()
+            
+            # Buscar el JSON en la respuesta
+            start_idx = content.find('{')
+            end_idx = content.rfind('}') + 1
+            
+            if start_idx == -1 or end_idx == 0:
+                raise ValueError("No se encontró JSON válido en la respuesta")
+            
+            json_str = content[start_idx:end_idx]
+            print(f"🔍 JSON extraído: {json_str[:200]}...")
+            
             # Parsear la respuesta JSON
-            analysis = json.loads(response.content)
+            analysis = json.loads(json_str)
             
             # Crear objeto Candidate
             candidate = Candidate(
