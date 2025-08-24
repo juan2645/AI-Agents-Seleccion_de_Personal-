@@ -1,0 +1,15 @@
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Email Configuration (for sending emails)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
+
+# Calendar Configuration (for scheduling interviews)
+CALENDAR_ID=your_calendar_id
+GOOGLE_CREDENTIALS_FILE=path_to_credentials.json
+
+# Database Configuration (optional)
+DATABASE_URL=sqlite:///hr_automation.db
