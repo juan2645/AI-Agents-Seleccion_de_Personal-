@@ -17,38 +17,20 @@ class CVAnalyzer:
         )
         
         self.cv_analysis_prompt = ChatPromptTemplate.from_messages([
-            ("system", """Eres un experto en recursos humanos especializado en análisis de CVs.
-            Tu tarea es extraer información estructurada de CVs y evaluar la compatibilidad con un perfil de trabajo.
+            ("system", """Analiza el CV y responde SOLO con un JSON válido. Extrae:
+            - name: nombre del candidato
+            - email: email del candidato  
+            - phone: teléfono si existe
+            - experience_years: años de experiencia calculados
+            - skills: lista de habilidades técnicas
+            - languages: idiomas que habla
+            - education: títulos académicos
+            - match_score: puntaje de 0-100
+            - match_reasons: razones por las que califica
+            - mismatch_reasons: razones por las que no califica
             
-            INSTRUCCIONES CRÍTICAS:
-            1. NOMBRE: Busca el nombre completo al inicio del CV (ej: "CARLOS RODRÍGUEZ")
-            2. EMAIL: Busca el email después de "Email:" (ej: "juan2645@gmail.com")
-            3. TELÉFONO: Busca el teléfono después de "Teléfono:" o "Phone:"
-            4. EXPERIENCIA: Suma los años de experiencia basándote en las fechas (ej: 2022-2024 = 2 años)
-            5. HABILIDADES: Extrae todas las tecnologías mencionadas (Python, Django, etc.)
-            6. IDIOMAS: Busca idiomas mencionados (Español, Inglés, etc.)
-            7. EDUCACIÓN: Extrae títulos académicos mencionados
-            
-            EVALUACIÓN DE MATCH (0-100):
-            - +20 puntos por cada año de experiencia relevante
-            - +15 puntos por cada habilidad requerida que tenga
-            - +10 puntos por cada idioma requerido que hable
-            - -10 puntos por falta de experiencia requerida
-            - -5 puntos por cada habilidad requerida que falte
-            
-            Responde ÚNICAMENTE con un JSON válido:
-            {
-                "name": "Nombre extraído del CV",
-                "email": "Email encontrado",
-                "phone": "Teléfono si existe",
-                "experience_years": número de años,
-                "skills": ["habilidad1", "habilidad2"],
-                "languages": ["idioma1", "idioma2"],
-                "education": ["título1"],
-                "match_score": número de 0-100,
-                "match_reasons": ["razón1", "razón2"],
-                "mismatch_reasons": ["razón1", "razón2"]
-            }
+            Formato JSON requerido:
+            {"name": "Nombre", "email": "email@ejemplo.com", "phone": "teléfono", "experience_years": 2, "skills": ["Python"], "languages": ["Español"], "education": ["Título"], "match_score": 75, "match_reasons": ["Tiene Python"], "mismatch_reasons": ["Falta experiencia"]}
             """),
             ("human", """
             Perfil del trabajo:
