@@ -63,7 +63,9 @@ class CVAnalyzer:
             messages = self.cv_analysis_prompt.format_messages(**prompt_vars)
             response = self.llm.invoke(messages)
             
-            print(f"🔍 Respuesta del LLM: {response.content[:200]}...")
+            print(f"🔍 Respuesta completa del LLM:")
+            print(response.content)
+            print("="*50)
             
             # Limpiar la respuesta para extraer solo el JSON
             content = response.content.strip()
