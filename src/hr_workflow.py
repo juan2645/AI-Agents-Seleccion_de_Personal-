@@ -1,7 +1,7 @@
 # src/hr_workflow.py
 from typing import List, Dict, Any
 from src.models import JobProfile, Candidate
-from .email_manager import EmailManager
+from .email_manager import EmailAgent
 import re
 
 class ProcessingState:
@@ -16,7 +16,7 @@ class HRWorkflow:
         self.smtp_config = smtp_config
         self.calendar_config = calendar_config
         self._id_counter = 1
-        self.email_manager = EmailManager(openai_api_key, smtp_config)
+        self.email_manager = EmailAgent(openai_api_key, smtp_config)
 
     # ------------------------------
     # Scoring

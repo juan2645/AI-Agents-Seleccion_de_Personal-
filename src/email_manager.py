@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 from .models import Candidate, EmailTemplate, CandidateStatus
 
-class EmailManager:
+class EmailAgent:
     """Gestor de emails para candidatos"""
     
     def __init__(self, openai_api_key: str, smtp_config: Dict[str, str]):

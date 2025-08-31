@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from models import JobProfile, Candidate, CandidateStatus
 from cv_analyzer import CandidateMatcherAgent
-from email_manager import EmailManager
+from email_manager import EmailAgent
 from report_generator import ReportGenerator
 
 class TestJobProfile:
@@ -125,13 +125,13 @@ class TestEmailManager:
             "email_password": "password"
         }
         
-        email_manager = EmailManager("fake_api_key", smtp_config)
+        email_manager = EmailAgent("fake_api_key", smtp_config)
         assert email_manager is not None
         assert email_manager.smtp_config == smtp_config
     
     def test_generate_highlight_reasons(self):
         """Test generación de razones destacadas"""
-        email_manager = EmailManager("fake_api_key", {})
+        email_manager = EmailAgent("fake_api_key", {})
         
         # Candidato con alto puntaje
         candidate_high = Candidate(
