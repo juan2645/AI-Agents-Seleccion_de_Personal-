@@ -137,8 +137,8 @@ class ReportAgent:
         if filename is None:
             # Crear carpeta de reportes si no existe
             import os
-            os.makedirs("reportes", exist_ok=True)
-            filename = f"reportes/reporte_reclutamiento_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            os.makedirs("reports", exist_ok=True)
+            filename = f"reports/reporte_reclutamiento_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         
         # Crear DataFrame con todos los candidatos
         candidates_data = []

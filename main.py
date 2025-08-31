@@ -335,13 +335,13 @@ async def download_report(report_type: str):
     filename = None
     
     if report_type == "summary":
-        filename = "reportes/reporte_resumen.txt"
+        filename = "reports/reporte_resumen.txt"
     elif report_type == "detailed":
-        filename = "reportes/reporte_detallado.json"
+        filename = "reports/reporte_detallado.json"
     elif report_type == "excel":
         # Buscar el archivo Excel más reciente
         import glob
-        excel_files = glob.glob("reportes/reporte_reclutamiento_*.xlsx")
+        excel_files = glob.glob("reports/reporte_reclutamiento_*.xlsx")
         if excel_files:
             filename = max(excel_files, key=os.path.getctime)
     
@@ -390,9 +390,9 @@ def run_example():
         
         print("\n✅ Ejemplo completado exitosamente!")
         print("📁 Los reportes se han guardado en:")
-        print("   - reportes/reporte_resumen.txt")
-        print("   - reportes/reporte_detallado.json")
-        print("   - reportes/reporte_reclutamiento_*.xlsx")
+        print("   - reports/reporte_resumen.txt")
+        print("   - reports/reporte_detallado.json")
+        print("   - reports/reporte_reclutamiento_*.xlsx")
         
     except Exception as e:
         print(f"❌ Error ejecutando ejemplo: {str(e)}")
@@ -439,9 +439,9 @@ def run_example_with_folder_cvs():
         
         print("\n✅ Ejemplo con CVs de carpeta completado exitosamente!")
         print("📁 Los reportes se han guardado en:")
-        print("   - reportes/reporte_resumen.txt")
-        print("   - reportes/reporte_detallado.json")
-        print("   - reportes/reporte_reclutamiento_*.xlsx")
+        print("   - reports/reporte_resumen.txt")
+        print("   - reports/reporte_detallado.json")
+        print("   - reports/reporte_reclutamiento_*.xlsx")
         
     except Exception as e:
         print(f"❌ Error ejecutando ejemplo: {str(e)}")

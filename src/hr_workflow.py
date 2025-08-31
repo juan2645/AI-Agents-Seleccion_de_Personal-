@@ -1,7 +1,8 @@
-# src/hr_workflow.py
 from typing import List, Dict, Any
 from src.models import JobProfile, Candidate
 from .email_manager import EmailAgent
+from .report_generator import ReportAgent
+import os, json 
 import re
 
 class ProcessingState:
@@ -17,6 +18,7 @@ class HRWorkflowAgent:
         self.calendar_config = calendar_config
         self._id_counter = 1
         self.email_manager = EmailAgent(openai_api_key, smtp_config)
+        self.report_agent = ReportAgent()  # Instancia
 
     # ------------------------------
     # Scoring
@@ -79,7 +81,6 @@ class HRWorkflowAgent:
                 education=education,
                 match_score=score
             )
-
             candidates.append(candidate)
 
         # Ordenar por score descendente
@@ -96,11 +97,39 @@ class HRWorkflowAgent:
         )
         processing_state.emails_sent = sum(email_results.values())
 
+        # ------------------------------
+        # Generación de reportes
+        # ------------------------------
+        os.makedirs("reports", exist_ok=True)
+
+        report = self.report_agent.generate_report(candidates, job_profile, processing_state)
+
+        # Guardar reporte resumen (TXT)
+        summary = self.report_agent._generate_summary_report(report)
+        with open("reports/reporte_resumen.txt", "w", encoding="utf-8") as f:
+            f.write(summary)
+
+        # Guardar reporte detallado (JSON)
+        detailed = self.report_agent._generate_detailed_report(report)
+        with open("reports/reporte_detallado.json", "w", encoding="utf-8") as f:
+            json.dump(detailed, f, ensure_ascii=False, indent=4)
+
+        # Guardar reporte Excel
+        excel_file = self.report_agent._generate_excel_report(report)
+
+        # ------------------------------
+        # Retornar resultados
+        # ------------------------------
         return {
             "candidates": candidates,
             "selected_candidates": selected_candidates,
             "rejected_candidates": rejected_candidates,
-            "processing_state": processing_state
+            "processing_state": processing_state,
+            "report_files": {
+                "summary": "reports/reporte_resumen.txt",
+                "detailed": "reports/reporte_detallado.json",
+                "excel": excel_file
+            }
         }
 
     def _next_id(self) -> int:
