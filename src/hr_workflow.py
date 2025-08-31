@@ -2,140 +2,37 @@ from typing import List, Dict, Any
 from src.models import JobProfile, Candidate
 from .email_manager import EmailAgent
 from .report_generator import ReportAgent
-import os, json 
+import os, json
 import re
 
+# ------------------------------
+# Estado del proceso
+# ------------------------------
 class ProcessingState:
     def __init__(self):
         self.emails_sent = 0
         self.interviews_scheduled = 0
         self.candidates_processed = 0
 
-class HRWorkflowAgent:
-    def __init__(self, openai_api_key: str, smtp_config: Dict[str, Any], calendar_config: Dict[str, Any] = None):
-        self.openai_api_key = openai_api_key
-        self.smtp_config = smtp_config
-        self.calendar_config = calendar_config
-        self._id_counter = 1
-        self.email_manager = EmailAgent(openai_api_key, smtp_config)
-        self.report_agent = ReportAgent()  # Instancia
-
-    # ------------------------------
-    # Scoring
-    # ------------------------------
-    def score_candidate(self, cv_text: str, job_profile: JobProfile, experience_years: int, languages: List[str]) -> int:
-        score = 0
-        cv_lower = cv_text.lower()
-
-        # Skills
-        for skill in job_profile.skills or []:
-            if skill and skill.lower() in cv_lower:
-                score += 10
-
-        # Idiomas
-        req_langs = set([l.strip().lower() for l in (job_profile.languages or []) if l.strip()])
-        cand_langs = set([l.strip().lower() for l in languages if l.strip()])
-        score += 5 * len(req_langs.intersection(cand_langs))
-
-        # Experiencia mínima
-        if job_profile.experience_years and experience_years:
-            try:
-                if experience_years >= int(job_profile.experience_years):
-                    score += 15
-            except:
-                pass
-
-        return score
-
-    # ------------------------------
-    # Workflow principal
-    # ------------------------------
-    def run_workflow(self, job_profile: JobProfile, cv_texts: List[str]) -> Dict[str, Any]:
-        processing_state = ProcessingState()
-        candidates: List[Candidate] = []
-
+# ------------------------------
+# Agentes
+# ------------------------------
+class CVReaderAgent:
+    """Extrae información de los CVs"""
+    def process(self, cv_texts: List[str]) -> List[Dict[str, Any]]:
+        processed = []
         for cv_text in cv_texts:
-            processing_state.candidates_processed += 1
-
-            # Extracciones
-            name = self.extract_name(cv_text)
-            email = self.extract_email(cv_text)
-            phone = self.extract_phone(cv_text)
-            skills = self.extract_skills(cv_text)
-            education = self.extract_education(cv_text)
-            languages = self.extract_languages(cv_text)
-            experience_years = self.extract_experience_years(cv_text)
-
-            # Score
-            score = self.score_candidate(cv_text, job_profile, experience_years, languages)
-
-            candidate = Candidate(
-                id=str(self._next_id()),
-                name=name,
-                email=email,
-                phone=phone,
-                cv_text=cv_text,
-                skills=skills,
-                experience_years=experience_years,
-                languages=languages,
-                education=education,
-                match_score=score
-            )
-            candidates.append(candidate)
-
-        # Ordenar por score descendente
-        candidates = sorted(candidates, key=lambda c: c.match_score, reverse=True)
-
-        # Selección por umbral
-        threshold = 30
-        selected_candidates = [c for c in candidates if c.match_score >= threshold]
-        rejected_candidates = [c for c in candidates if c.match_score < threshold]
-
-        # Enviar emails a seleccionados
-        email_results = self.email_manager.send_bulk_emails(
-            selected_candidates, template_type="selected", job_title=job_profile.title
-        )
-        processing_state.emails_sent = sum(email_results.values())
-
-        # ------------------------------
-        # Generación de reportes
-        # ------------------------------
-        os.makedirs("reports", exist_ok=True)
-
-        report = self.report_agent.generate_report(candidates, job_profile, processing_state)
-
-        # Guardar reporte resumen (TXT)
-        summary = self.report_agent._generate_summary_report(report)
-        with open("reports/reporte_resumen.txt", "w", encoding="utf-8") as f:
-            f.write(summary)
-
-        # Guardar reporte detallado (JSON)
-        detailed = self.report_agent._generate_detailed_report(report)
-        with open("reports/reporte_detallado.json", "w", encoding="utf-8") as f:
-            json.dump(detailed, f, ensure_ascii=False, indent=4)
-
-        # Guardar reporte Excel
-        excel_file = self.report_agent._generate_excel_report(report)
-
-        # ------------------------------
-        # Retornar resultados
-        # ------------------------------
-        return {
-            "candidates": candidates,
-            "selected_candidates": selected_candidates,
-            "rejected_candidates": rejected_candidates,
-            "processing_state": processing_state,
-            "report_files": {
-                "summary": "reports/reporte_resumen.txt",
-                "detailed": "reports/reporte_detallado.json",
-                "excel": excel_file
-            }
-        }
-
-    def _next_id(self) -> int:
-        val = self._id_counter
-        self._id_counter += 1
-        return val
+            processed.append({
+                "cv_text": cv_text,
+                "name": self.extract_name(cv_text),
+                "email": self.extract_email(cv_text),
+                "phone": self.extract_phone(cv_text),
+                "skills": self.extract_skills(cv_text),
+                "education": self.extract_education(cv_text),
+                "languages": self.extract_languages(cv_text),
+                "experience_years": self.extract_experience_years(cv_text)
+            })
+        return processed
 
     # ------------------------------
     # Extractores
@@ -229,3 +126,129 @@ class HRWorkflowAgent:
                 except:
                     years = 0
         return years
+
+# ------------------------------
+# Agente de Matching y Scoring
+# ------------------------------
+class CandidateMatcherAgent:
+    """Calcula score y selecciona candidatos"""
+    def __init__(self, job_profile: JobProfile):
+        self.job_profile = job_profile
+
+    def score_candidate(self, cv_text: str, experience_years: int, languages: List[str]) -> int:
+        score = 0
+        cv_lower = cv_text.lower()
+
+        # Skills
+        for skill in self.job_profile.skills or []:
+            if skill and skill.lower() in cv_lower:
+                score += 10
+
+        # Idiomas
+        req_langs = set([l.strip().lower() for l in (self.job_profile.languages or []) if l.strip()])
+        cand_langs = set([l.strip().lower() for l in languages if l.strip()])
+        score += 5 * len(req_langs.intersection(cand_langs))
+
+        # Experiencia mínima
+        if self.job_profile.experience_years and experience_years:
+            try:
+                if experience_years >= int(self.job_profile.experience_years):
+                    score += 15
+            except:
+                pass
+        return score
+
+    def process(self, candidates: List[Candidate], threshold: int = 30) -> Dict[str, List[Candidate]]:
+        for c in candidates:
+            c.match_score = self.score_candidate(c.cv_text, c.experience_years, c.languages)
+        candidates_sorted = sorted(candidates, key=lambda c: c.match_score, reverse=True)
+        selected = [c for c in candidates_sorted if c.match_score >= threshold]
+        rejected = [c for c in candidates_sorted if c.match_score < threshold]
+        return {"all": candidates_sorted, "selected": selected, "rejected": rejected}
+
+# ------------------------------
+# Workflow principal
+# ------------------------------
+class HRWorkflowAgent:
+    def __init__(self, openai_api_key: str, smtp_config: Dict[str, Any], calendar_config: Dict[str, Any] = None):
+        self.openai_api_key = openai_api_key
+        self.smtp_config = smtp_config
+        self.calendar_config = calendar_config
+        self._id_counter = 1
+        self.cv_agent = CVReaderAgent()
+        self.email_manager = EmailAgent(openai_api_key, smtp_config)
+        self.report_agent = ReportAgent()
+
+    def _next_id(self) -> int:
+        val = self._id_counter
+        self._id_counter += 1
+        return val
+
+    def run_workflow(self, job_profile: JobProfile, cv_texts: List[str]) -> Dict[str, Any]:
+        processing_state = ProcessingState()
+
+        # ------------------------------
+        # Extracción de CVs
+        # ------------------------------
+        raw_candidates = self.cv_agent.process(cv_texts)
+        candidates: List[Candidate] = []
+        for rc in raw_candidates:
+            candidate = Candidate(
+                id=str(self._next_id()),
+                name=rc["name"],
+                email=rc["email"],
+                phone=rc["phone"],
+                cv_text=rc["cv_text"],
+                skills=rc["skills"],
+                experience_years=rc["experience_years"],
+                languages=rc["languages"],
+                education=rc["education"],
+                match_score=0
+            )
+            candidates.append(candidate)
+            processing_state.candidates_processed += 1
+
+        # ------------------------------
+        # Scoring y selección
+        # ------------------------------
+        matcher = CandidateMatcherAgent(job_profile)
+        matched = matcher.process(candidates)
+
+        # ------------------------------
+        # Envío de emails
+        # ------------------------------
+        email_results = self.email_manager.send_bulk_emails(
+            matched["selected"], template_type="selected", job_title=job_profile.title
+        )
+        processing_state.emails_sent = sum(email_results.values())
+
+        # ------------------------------
+        # Generación de reportes
+        # ------------------------------
+        os.makedirs("reports", exist_ok=True)
+        report = self.report_agent.generate_report(matched["all"], job_profile, processing_state)
+
+        # TXT
+        summary = self.report_agent._generate_summary_report(report)
+        with open("reports/reporte_resumen.txt", "w", encoding="utf-8") as f:
+            f.write(summary)
+
+        # JSON
+        detailed = self.report_agent._generate_detailed_report(report)
+        with open("reports/reporte_detallado.json", "w", encoding="utf-8") as f:
+            json.dump(detailed, f, ensure_ascii=False, indent=4)
+
+        # Excel
+        excel_file = self.report_agent._generate_excel_report(report)
+
+        return {
+            "candidates": matched["all"],
+            "selected_candidates": matched["selected"],
+            "rejected_candidates": matched["rejected"],
+            "processing_state": processing_state,
+            "report_files": {
+                "summary": "reports/reporte_resumen.txt",
+                "detailed": "reports/reporte_detallado.json",
+                "excel": excel_file
+            }
+        }
