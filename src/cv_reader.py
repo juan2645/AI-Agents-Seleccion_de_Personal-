@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from docx import Document
 import logging
 
-class CVReader:
+class CVReaderAgent:
     """Clase para leer CVs desde diferentes formatos de archivo"""
     
     def __init__(self, cv_folder: str = "curriculums"):

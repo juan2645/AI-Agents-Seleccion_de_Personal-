@@ -8,7 +8,7 @@ import uvicorn
 
 from src.models import JobProfile, Candidate
 from src.hr_workflow import HRWorkflow
-from src.cv_reader import CVReader
+from src.cv_reader import CVReaderAgent
 
 # Cargar variables de entorno
 load_dotenv()
@@ -254,7 +254,7 @@ async def process_cvs_from_folder():
         Información de los CVs encontrados
     """
     try:
-        cv_reader = CVReader()
+        cv_reader = CVReaderAgent()
         cvs = cv_reader.read_all_cvs()
         
         return {
@@ -296,7 +296,7 @@ async def process_recruitment_from_folder(
     
     try:
         # Leer CVs desde la carpeta
-        cv_reader = CVReader()
+        cv_reader = CVReaderAgent()
         cv_texts = cv_reader.get_cv_texts()
         
         if not cv_texts:
@@ -406,7 +406,7 @@ def run_example_with_folder_cvs():
         initialize_workflow()
         
         # Leer CVs desde la carpeta
-        cv_reader = CVReader()
+        cv_reader = CVReaderAgent()
         cv_texts = cv_reader.get_cv_texts()
         
         if not cv_texts:
