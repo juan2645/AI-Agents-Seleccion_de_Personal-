@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 from .models import Candidate, JobProfile, RecruitmentReport, ProcessingState
 
-class ReportGenerator:
+class ReportAgent:
     """Generador de reportes de reclutamiento"""
     
     def __init__(self):

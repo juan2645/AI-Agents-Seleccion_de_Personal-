@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from models import JobProfile, Candidate, CandidateStatus
 from cv_analyzer import CandidateMatcherAgent
 from email_manager import EmailAgent
-from report_generator import ReportGenerator
+from report_generator import ReportAgent
 
 class TestJobProfile:
     """Tests para el modelo JobProfile"""
@@ -159,7 +159,7 @@ class TestReportGenerator:
     
     def test_report_generator_initialization(self):
         """Test inicialización del generador de reportes"""
-        generator = ReportGenerator()
+        generator = ReportAgent()
         assert generator is not None
         assert "summary" in generator.report_templates
         assert "detailed" in generator.report_templates
@@ -167,7 +167,7 @@ class TestReportGenerator:
     
     def test_calculate_score_distribution(self):
         """Test cálculo de distribución de puntajes"""
-        generator = ReportGenerator()
+        generator = ReportAgent()
         
         candidates = [
             Candidate(id="1", name="A", email="a@test.com", cv_text="",
@@ -190,7 +190,7 @@ class TestReportGenerator:
     
     def test_generate_recommendations(self):
         """Test generación de recomendaciones"""
-        generator = ReportGenerator()
+        generator = ReportAgent()
         
         # Caso: sin candidatos seleccionados
         from models import RecruitmentReport, ProcessingState
