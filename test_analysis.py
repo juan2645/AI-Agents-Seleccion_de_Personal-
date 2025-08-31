@@ -5,7 +5,7 @@ Script de prueba para verificar el análisis de CVs
 
 import os
 from dotenv import load_dotenv
-from src.cv_analyzer import CVAnalyzer
+from src.cv_analyzer import CandidateMatcherAgent
 from src.models import JobProfile
 
 # Cargar variables de entorno
@@ -71,7 +71,7 @@ def test_cv_analysis():
     print(f"📄 CV: {cv_text[:100]}...")
     
     # Crear analizador
-    analyzer = CVAnalyzer(api_key)
+    analyzer = CandidateMatcherAgent(api_key)
     
     try:
         # Analizar CV

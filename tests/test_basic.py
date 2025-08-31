@@ -8,7 +8,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from models import JobProfile, Candidate, CandidateStatus
-from cv_analyzer import CVAnalyzer
+from cv_analyzer import CandidateMatcherAgent
 from email_manager import EmailManager
 from report_generator import ReportGenerator
 
@@ -61,13 +61,13 @@ class TestCVAnalyzer:
         """Test inicialización del analizador"""
         mock_llm.return_value = Mock()
         
-        analyzer = CVAnalyzer("fake_api_key")
+        analyzer = CandidateMatcherAgent("fake_api_key")
         assert analyzer is not None
         assert analyzer.llm is not None
     
     def test_generate_candidate_id(self):
         """Test generación de ID de candidato"""
-        analyzer = CVAnalyzer("fake_api_key")
+        analyzer = CandidateMatcherAgent("fake_api_key")
         candidate_id = analyzer._generate_candidate_id("Juan Pérez")
         
         assert "juanperez" in candidate_id
@@ -75,7 +75,7 @@ class TestCVAnalyzer:
     
     def test_rank_candidates(self):
         """Test ranking de candidatos"""
-        analyzer = CVAnalyzer("fake_api_key")
+        analyzer = CandidateMatcherAgent("fake_api_key")
         
         candidates = [
             Candidate(id="1", name="A", email="a@test.com", cv_text="", 
@@ -94,7 +94,7 @@ class TestCVAnalyzer:
     
     def test_filter_candidates(self):
         """Test filtrado de candidatos"""
-        analyzer = CVAnalyzer("fake_api_key")
+        analyzer = CandidateMatcherAgent("fake_api_key")
         
         candidates = [
             Candidate(id="1", name="A", email="a@test.com", cv_text="", 

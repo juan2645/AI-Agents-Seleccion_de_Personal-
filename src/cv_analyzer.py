@@ -6,7 +6,7 @@ import json
 import re
 from .models import Candidate, JobProfile, CandidateStatus
 
-class CVAnalyzer:
+class CandidateMatcherAgent:
     """Analizador de CVs usando LangChain"""
     
     def __init__(self, openai_api_key: str):
