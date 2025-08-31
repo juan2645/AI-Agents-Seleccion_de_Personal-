@@ -4,7 +4,7 @@ import pytz
 from .models import InterviewSchedule, Candidate
 import json
 
-class CalendarManager:
+class CalendarAgent:
     """Gestor de calendario para programar entrevistas"""
     
     def __init__(self, calendar_config: Dict[str, str]):
