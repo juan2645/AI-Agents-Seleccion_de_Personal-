@@ -10,7 +10,7 @@ class ProcessingState:
         self.interviews_scheduled = 0
         self.candidates_processed = 0
 
-class HRWorkflow:
+class HRWorkflowAgent:
     def __init__(self, openai_api_key: str, smtp_config: Dict[str, Any], calendar_config: Dict[str, Any] = None):
         self.openai_api_key = openai_api_key
         self.smtp_config = smtp_config

@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 import uvicorn
 
 from src.models import JobProfile, Candidate
-from src.hr_workflow import HRWorkflow
+from src.hr_workflow import HRWorkflowAgent
 from src.cv_reader import CVReaderAgent
 
 # Cargar variables de entorno
@@ -42,7 +42,7 @@ def initialize_workflow():
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY no está configurada")
     
-    hr_workflow = HRWorkflow(OPENAI_API_KEY, SMTP_CONFIG, CALENDAR_CONFIG)
+    hr_workflow = HRWorkflowAgent(OPENAI_API_KEY, SMTP_CONFIG, CALENDAR_CONFIG)
     print("✅ Workflow de HR inicializado correctamente")
 
 @app.on_event("startup")
