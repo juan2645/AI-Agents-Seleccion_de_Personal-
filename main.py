@@ -37,11 +37,19 @@ hr_workflow = None
 def initialize_workflow():
     """Inicializa el workflow de HR"""
     global hr_workflow
-    if not OPENAI_API_KEY:
-        raise ValueError("OPENAI_API_KEY no está configurada")
     
-    hr_workflow = HRWorkflowAgent(OPENAI_API_KEY, SMTP_CONFIG, CALENDAR_CONFIG)
-    print("✅ Workflow de HR inicializado correctamente")
+    if not OPENAI_API_KEY:
+        print("❌ OPENAI_API_KEY no está configurada")
+        print("💡 Crea un archivo .env con: OPENAI_API_KEY=tu_clave_aqui")
+        hr_workflow = None
+        return
+    
+    try:
+        hr_workflow = HRWorkflowAgent(OPENAI_API_KEY, SMTP_CONFIG, CALENDAR_CONFIG)
+        print("✅ Workflow de HR inicializado correctamente")
+    except Exception as e:
+        print(f"❌ Error inicializando workflow: {str(e)}")
+        hr_workflow = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -367,7 +375,10 @@ async def process_recruitment_with_files(
         Resultado del procesamiento
     """
     if not hr_workflow:
-        raise HTTPException(status_code=500, detail="Workflow no inicializado")
+        raise HTTPException(
+            status_code=500, 
+            detail="Workflow no inicializado. Verifica que OPENAI_API_KEY esté configurada correctamente."
+        )
     
     try:
         # Parsear perfil del trabajo
