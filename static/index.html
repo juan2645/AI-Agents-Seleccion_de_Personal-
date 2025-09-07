@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Selección de Personal - IA</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-primary">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-users me-2"></i>
+                Sistema de Selección de Personal
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-robot me-1"></i>
+                    Powered by AI
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <!-- Header -->
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center py-4">
+                        <h1 class="display-5 fw-bold mb-2">
+                            <i class="fas fa-brain me-3"></i>
+                            Selección Inteligente de Personal
+                        </h1>
+                        <p class="lead mb-0">Automatización de reclutamiento con Inteligencia Artificial</p>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="card-body p-0">
+                        <div class="progress-container p-4">
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-success" role="progressbar" id="progressBar" style="width: 33%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-success" id="step1Badge">1. Perfil del Puesto</span>
+                                <span class="badge bg-secondary" id="step2Badge">2. Cargar CVs</span>
+                                <span class="badge bg-secondary" id="step3Badge">3. Resultados</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 1: Job Profile -->
+                        <section class="step-section p-4" id="step1">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="h3 mb-4 text-primary">
+                                        <i class="fas fa-briefcase me-2"></i>
+                                        Configurar Perfil del Puesto
+                                    </h2>
+                                </div>
+                            </div>
+                            
+                            <form id="jobProfileForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="jobTitle" class="form-label fw-semibold">
+                                            <i class="fas fa-tag me-1"></i>Título del Puesto
+                                        </label>
+                                        <input type="text" class="form-control form-control-lg" id="jobTitle" name="title" 
+                                               value="Desarrollador Python Senior" required>
+                                    </div>
+                                    
+                                    <div class="col-md-3">
+                                        <label for="experienceYears" class="form-label fw-semibold">
+                                            <i class="fas fa-calendar-alt me-1"></i>Años de Experiencia
+                                        </label>
+                                        <input type="number" class="form-control form-control-lg" id="experienceYears" 
+                                               name="experience_years" value="5" min="0" required>
+                                    </div>
+                                    
+                                    <div class="col-md-3">
+                                        <label for="location" class="form-label fw-semibold">
+                                            <i class="fas fa-map-marker-alt me-1"></i>Ubicación
+                                        </label>
+                                        <input type="text" class="form-control form-control-lg" id="location" 
+                                               name="location" value="Remoto" required>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label for="salaryRange" class="form-label fw-semibold">
+                                            <i class="fas fa-dollar-sign me-1"></i>Rango Salarial
+                                        </label>
+                                        <input type="text" class="form-control form-control-lg" id="salaryRange" 
+                                               name="salary_range" value="$3000 - $5000 USD">
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label for="languages" class="form-label fw-semibold">
+                                            <i class="fas fa-language me-1"></i>Idiomas Requeridos
+                                        </label>
+                                        <input type="text" class="form-control form-control-lg" id="languages" 
+                                               name="languages" value="Español, Inglés" required>
+                                        <div class="form-text">Separados por comas</div>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label for="jobDescription" class="form-label fw-semibold">
+                                            <i class="fas fa-align-left me-1"></i>Descripción del Puesto
+                                        </label>
+                                        <textarea class="form-control" id="jobDescription" name="description" 
+                                                  rows="3" required>Buscamos un desarrollador Python senior para unirse a nuestro equipo de desarrollo.</textarea>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label for="requirements" class="form-label fw-semibold">
+                                            <i class="fas fa-list-check me-1"></i>Requisitos del Puesto
+                                        </label>
+                                        <textarea class="form-control" id="requirements" name="requirements" 
+                                                  rows="4" required>Experiencia mínima de 2 años en desarrollo Python
+Conocimientos sólidos en APIs REST
+Conocimientos de bases de datos SQL y NoSQL
+Experiencia con Docker y CI/CD</textarea>
+                                        <div class="form-text">Un requisito por línea</div>
+                                    </div>
+                                    
+                                    <div class="col-12">
+                                        <label for="skills" class="form-label fw-semibold">
+                                            <i class="fas fa-code me-1"></i>Habilidades Técnicas
+                                        </label>
+                                        <input type="text" class="form-control form-control-lg" id="skills" 
+                                               name="skills" value="Python, Django, FastAPI, PostgreSQL, Docker, Git, AWS" required>
+                                        <div class="form-text">Separadas por comas</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end mt-4">
+                                    <button type="button" class="btn btn-primary btn-lg px-5" onclick="nextStep()">
+                                        <i class="fas fa-arrow-right me-2"></i>
+                                        Siguiente Paso
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <!-- Step 2: CV Upload -->
+                        <section class="step-section p-4" id="step2" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="h3 mb-4 text-primary">
+                                        <i class="fas fa-upload me-2"></i>
+                                        Cargar Currículums
+                                    </h2>
+                                </div>
+                            </div>
+                            
+                            <!-- Upload Area -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card border-2 border-dashed border-primary" id="uploadArea" style="cursor: pointer;">
+                                        <div class="card-body text-center py-5">
+                                            <i class="fas fa-cloud-upload-alt text-primary mb-3" style="font-size: 3rem;"></i>
+                                            <h4 class="text-primary mb-2">Arrastra y suelta tus CVs aquí</h4>
+                                            <p class="text-muted mb-2">o haz clic para seleccionar archivos</p>
+                                            <div class="badge bg-light text-dark">
+                                                <i class="fas fa-file-word me-1"></i>
+                                                <i class="fas fa-file-pdf me-1"></i>
+                                                <i class="fas fa-file-alt me-1"></i>
+                                                Formatos: .docx, .pdf, .txt
+                                            </div>
+                                        </div>
+                                        <input type="file" id="fileInput" multiple accept=".docx,.pdf,.txt" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- File List -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div id="fileList"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="prevStep()">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Anterior
+                                </button>
+                                <button type="button" class="btn btn-success btn-lg px-5" onclick="processCVs()" id="processBtn" disabled>
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Procesar CVs con IA
+                                </button>
+                            </div>
+                        </section>
+
+                        <!-- Step 3: Results -->
+                        <section class="step-section p-4" id="step3" style="display: none;">
+                            <!-- Loading State -->
+                            <div class="text-center py-5" id="loading" style="display: none;">
+                                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <h4 class="text-primary">Analizando candidatos con IA...</h4>
+                                <p class="text-muted">Esto puede tomar unos momentos</p>
+                            </div>
+                            
+                            <!-- Results -->
+                            <div id="results" style="display: none;">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <h2 class="h3 mb-4 text-primary">
+                                            <i class="fas fa-chart-bar me-2"></i>
+                                            Resultados del Análisis
+                                        </h2>
+                                    </div>
+                                </div>
+                                
+                                <!-- Statistics Cards -->
+                                <div class="row g-3 mb-5">
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-users fa-2x mb-2"></i>
+                                                <h3 class="card-title" id="totalCandidates">0</h3>
+                                                <p class="card-text">Total Candidatos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                                <h3 class="card-title" id="selectedCandidates">0</h3>
+                                                <p class="card-text">Seleccionados</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-danger text-white h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-times-circle fa-2x mb-2"></i>
+                                                <h3 class="card-title" id="rejectedCandidates">0</h3>
+                                                <p class="card-text">Rechazados</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-white h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-envelope fa-2x mb-2"></i>
+                                                <h3 class="card-title" id="emailsSent">0</h3>
+                                                <p class="card-text">Emails Enviados</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Selected Candidates -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h3 class="h4 text-success mb-3">
+                                            <i class="fas fa-trophy me-2"></i>
+                                            Candidatos Seleccionados
+                                        </h3>
+                                        <div id="selectedCandidatesList"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Rejected Candidates -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h3 class="h4 text-danger mb-3">
+                                            <i class="fas fa-times-circle me-2"></i>
+                                            Candidatos Rechazados
+                                        </h3>
+                                        <div id="rejectedCandidatesList"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                            <button type="button" class="btn btn-outline-success" onclick="downloadReport('summary')">
+                                                <i class="fas fa-download me-2"></i>
+                                                Descargar Resumen
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success" onclick="downloadReport('detailed')">
+                                                <i class="fas fa-download me-2"></i>
+                                                Descargar Detallado
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success" onclick="downloadReport('excel')">
+                                                <i class="fas fa-download me-2"></i>
+                                                Descargar Excel
+                                            </button>
+                                            <button type="button" class="btn btn-primary" onclick="startOver()">
+                                                <i class="fas fa-redo me-2"></i>
+                                                Nuevo Análisis
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>

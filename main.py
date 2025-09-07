@@ -1,9 +1,11 @@
 import os
 import json
 from typing import List, Dict, Any
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from src.models import JobProfile, Candidate
@@ -11,7 +13,10 @@ from src.hr_workflow import HRWorkflowAgent
 from src.cv_reader import CVReaderAgent
 
 # Cargar variables de entorno
-load_dotenv()
+try:
+    load_dotenv()
+except:
+    print("⚠️ No se pudo cargar .env, usando valores por defecto")
 
 # Configuración
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -26,13 +31,6 @@ CALENDAR_CONFIG = {
     "credentials_file": os.getenv("GOOGLE_CREDENTIALS_FILE", "")
 }
 
-# Inicializar FastAPI
-app = FastAPI(
-    title="Sistema de Automatización de Selección de Personal",
-    description="API para automatizar el proceso de reclutamiento usando IA",
-    version="1.0.0"
-)
-
 # Inicializar workflow
 hr_workflow = None
 
@@ -45,13 +43,39 @@ def initialize_workflow():
     hr_workflow = HRWorkflowAgent(OPENAI_API_KEY, SMTP_CONFIG, CALENDAR_CONFIG)
     print("✅ Workflow de HR inicializado correctamente")
 
-@app.on_event("startup")
-async def startup_event():
-    """Evento de inicio de la aplicación"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Maneja el ciclo de vida de la aplicación"""
+    # Startup
     try:
         initialize_workflow()
     except Exception as e:
         print(f"❌ Error inicializando workflow: {str(e)}")
+    
+    yield
+    
+    # Shutdown (si necesitas limpiar algo al cerrar)
+    pass
+
+# Inicializar FastAPI
+app = FastAPI(
+    title="Sistema de Automatización de Selección de Personal",
+    description="API para automatizar el proceso de reclutamiento usando IA",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Montar archivos estáticos
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Servir archivos estáticos directamente
+@app.get("/styles.css")
+async def get_styles():
+    return FileResponse("static/styles.css")
+
+@app.get("/script.js")
+async def get_script():
+    return FileResponse("static/script.js")
 
 # Datos de ejemplo
 EXAMPLE_JOB_PROFILE = JobProfile(
@@ -153,9 +177,15 @@ EXAMPLE_CVS = [
     """
 ]
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Endpoint raíz"""
+    """Endpoint raíz - Interfaz web"""
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/api")
+async def api_root():
+    """Endpoint API raíz"""
     return {
         "message": "Sistema de Automatización de Selección de Personal",
         "version": "1.0.0",
@@ -315,6 +345,130 @@ async def process_recruitment_from_folder(
                 "emails_sent": result["processing_state"].emails_sent,
                 "interviews_scheduled": result["processing_state"].interviews_scheduled,
                 "processing_time": result["processing_state"].candidates_processed
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en el procesamiento: {str(e)}")
+
+@app.post("/process-recruitment-with-files")
+async def process_recruitment_with_files(
+    files: List[UploadFile] = File(...),
+    job_profile: str = None
+):
+    """
+    Procesa un reclutamiento completo usando archivos CV subidos
+    
+    Args:
+        files: Lista de archivos CV subidos
+        job_profile: Perfil del puesto en formato JSON string
+    
+    Returns:
+        Resultado del procesamiento
+    """
+    if not hr_workflow:
+        raise HTTPException(status_code=500, detail="Workflow no inicializado")
+    
+    try:
+        # Parsear perfil del trabajo
+        if job_profile:
+            job_data = json.loads(job_profile)
+            job_profile_obj = JobProfile(**job_data)
+        else:
+            job_profile_obj = EXAMPLE_JOB_PROFILE
+        
+        # Leer contenido de los archivos usando CVReaderAgent
+        cv_texts = []
+        cv_reader = CVReaderAgent()
+        
+        for file in files:
+            if file.filename.endswith(('.docx', '.pdf', '.txt')):
+                content = await file.read()
+                
+                if file.filename.endswith('.txt'):
+                    # Archivo de texto simple
+                    cv_texts.append(content.decode('utf-8'))
+                elif file.filename.endswith('.docx'):
+                    # Archivo Word - necesitamos guardarlo temporalmente y procesarlo
+                    import tempfile
+                    import os
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as temp_file:
+                        temp_file.write(content)
+                        temp_file_path = temp_file.name
+                    
+                    try:
+                        # Usar CVReaderAgent para procesar el archivo Word
+                        text = cv_reader.read_word_document(temp_file_path)
+                        cv_texts.append(text)
+                    finally:
+                        # Limpiar archivo temporal
+                        if os.path.exists(temp_file_path):
+                            os.unlink(temp_file_path)
+                else:
+                    # Para PDFs, por ahora usar decode con errores ignorados
+                    cv_texts.append(content.decode('utf-8', errors='ignore'))
+        
+        if not cv_texts:
+            raise HTTPException(status_code=400, detail="No se pudieron procesar los archivos")
+        
+        # Ejecutar workflow
+        result = hr_workflow.run_workflow(job_profile_obj, cv_texts)
+        
+        # Preparar datos de candidatos
+        all_candidates = [
+            {
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "match_score": c.match_score,
+                "skills": c.skills,
+                "languages": c.languages,
+                "experience_years": c.experience_years,
+                "notes": c.notes
+            }
+            for c in result["candidates"]
+        ]
+        
+        selected_candidates = [
+            {
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "match_score": c.match_score,
+                "skills": c.skills,
+                "languages": c.languages,
+                "experience_years": c.experience_years,
+                "notes": c.notes
+            }
+            for c in result["selected_candidates"]
+        ]
+        
+        rejected_candidates = [
+            {
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "match_score": c.match_score,
+                "skills": c.skills,
+                "languages": c.languages,
+                "experience_years": c.experience_years,
+                "notes": c.notes
+            }
+            for c in result["rejected_candidates"]
+        ]
+        
+        return {
+            "success": True,
+            "message": "Proceso de reclutamiento completado",
+            "data": {
+                "total_candidates": len(all_candidates),
+                "selected_candidates": selected_candidates,  # Array completo
+                "rejected_candidates": rejected_candidates,  # Array completo
+                "emails_sent": result["processing_state"].emails_sent,
+                "interviews_scheduled": result["processing_state"].interviews_scheduled,
+                "processing_time": result["processing_state"].candidates_processed,
+                "candidates": all_candidates
             }
         }
         
