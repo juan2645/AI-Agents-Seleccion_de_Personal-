@@ -108,23 +108,65 @@ class CVReaderAgent:
         return [re.sub(r"\(.*?\)", "", l).strip() for l in lines]
 
     def extract_experience_years(self, text: str) -> int:
+        """
+        Extrae los años de experiencia laboral del texto del CV.
+        
+        Busca rangos de fechas en la sección de experiencia profesional
+        y calcula la duración total de experiencia laboral.
+        """
         years = 0
-        ranges = re.findall(r'(\d{4})\s*[-–—]\s*(\d{4})', text)
-        for a, b in ranges:
-            try:
-                ai = int(a)
-                bi = int(b)
-                if bi >= ai:
-                    years += (bi - ai)
-            except:
-                pass
+        
+        # Buscar la sección de experiencia profesional
+        experience_section = self.extract_section(text, "EXPERIENCIA PROFESIONAL", 
+                                                ["EDUCACIÓN", "IDIOMAS", "HABILIDADES", "FORMACIÓN"])
+        
+        if not experience_section:
+            # Si no encuentra "EXPERIENCIA PROFESIONAL", buscar "EXPERIENCIA"
+            experience_section = self.extract_section(text, "EXPERIENCIA", 
+                                                    ["EDUCACIÓN", "IDIOMAS", "HABILIDADES", "FORMACIÓN"])
+        
+        if experience_section:
+            # Buscar rangos de años en la sección de experiencia
+            ranges = re.findall(r'(\d{4})\s*[-–—]\s*(\d{4})', experience_section)
+            for a, b in ranges:
+                try:
+                    ai = int(a)
+                    bi = int(b)
+                    # Validar que sea un rango razonable (máximo 50 años)
+                    if bi >= ai and (bi - ai) <= 50:
+                        years += (bi - ai)
+                except:
+                    pass
+        
+        # Si no encontró rangos, buscar menciones explícitas de años
         if years == 0:
-            m = re.search(r'(\d+)\s*(?:años|anios|anos)', text.lower())
+            # Buscar en toda la sección de experiencia
+            search_text = experience_section if experience_section else text
+            m = re.search(r'(\d+)\s*(?:años?|anios?|anos?)\s*(?:de\s*)?(?:experiencia|exp)', search_text.lower())
             if m:
                 try:
                     years = int(m.group(1))
+                    # Validar que sea un número razonable
+                    if years > 50:
+                        years = 0
                 except:
                     years = 0
+        
+        # Si aún no encuentra nada, intentar calcular desde el primer trabajo
+        if years == 0 and experience_section:
+            # Buscar el año más antiguo en la experiencia
+            years_found = re.findall(r'\b(19|20)\d{2}\b', experience_section)
+            if years_found:
+                try:
+                    oldest_year = min([int(year) for year in years_found])
+                    current_year = 2024
+                    years = current_year - oldest_year
+                    # Limitar a un máximo razonable
+                    if years > 50:
+                        years = 0
+                except:
+                    years = 0
+        
         return years
 
 # ------------------------------
