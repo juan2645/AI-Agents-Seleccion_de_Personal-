@@ -3,6 +3,9 @@ let currentStep = 1;
 let uploadedFiles = [];
 let jobProfile = {};
 let analysisResults = {};
+let selectedCandidatesForInterview = [];
+let availableSlots = [];
+let scheduledInterviews = [];
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,6 +22,16 @@ function initializeEventListeners() {
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleDrop);
     fileInput.addEventListener('change', handleFileSelect);
+    
+    // Interview scheduling
+    const interviewDate = document.getElementById('interviewDate');
+    if (interviewDate) {
+        interviewDate.addEventListener('change', loadAvailableSlots);
+        // Set minimum date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        interviewDate.min = tomorrow.toISOString().split('T')[0];
+    }
 }
 
 // Navegación entre pasos
@@ -28,6 +41,11 @@ function nextStep() {
             currentStep = 2;
             showStep(2);
         }
+    } else if (currentStep === 3) {
+        // Move to interview scheduling step
+        currentStep = 4;
+        showStep(4);
+        loadInterviewCandidates();
     }
 }
 
@@ -35,6 +53,9 @@ function prevStep() {
     if (currentStep === 2) {
         currentStep = 1;
         showStep(1);
+    } else if (currentStep === 4) {
+        currentStep = 3;
+        showStep(3);
     }
 }
 
@@ -57,7 +78,7 @@ function showStep(step) {
 
 function updateProgressBar(step) {
     const progressBar = document.getElementById('progressBar');
-    const progress = (step / 3) * 100;
+    const progress = (step / 4) * 100;
     progressBar.style.width = `${progress}%`;
     
     if (step === 1) {
@@ -66,6 +87,8 @@ function updateProgressBar(step) {
         progressBar.className = 'progress-bar bg-warning';
     } else if (step === 3) {
         progressBar.className = 'progress-bar bg-info';
+    } else if (step === 4) {
+        progressBar.className = 'progress-bar bg-primary';
     }
 }
 
@@ -74,6 +97,7 @@ function updateStepBadges(step) {
     document.getElementById('step1Badge').className = 'badge bg-secondary';
     document.getElementById('step2Badge').className = 'badge bg-secondary';
     document.getElementById('step3Badge').className = 'badge bg-secondary';
+    document.getElementById('step4Badge').className = 'badge bg-secondary';
     
     // Activate current and previous steps
     for (let i = 1; i <= step; i++) {
@@ -313,6 +337,14 @@ function displayResults(result) {
     
     // Mostrar resultados
     document.getElementById('results').style.display = 'block';
+    
+    // Show/hide schedule interviews button based on selected candidates
+    const scheduleBtn = document.getElementById('scheduleInterviewsBtn');
+    if (selectedCandidates.length > 0) {
+        scheduleBtn.style.display = 'inline-block';
+    } else {
+        scheduleBtn.style.display = 'none';
+    }
 }
 
 function displayCandidates(candidates, containerId, type) {
@@ -431,6 +463,9 @@ function startOver() {
     uploadedFiles = [];
     jobProfile = {};
     analysisResults = {};
+    selectedCandidatesForInterview = [];
+    availableSlots = [];
+    scheduledInterviews = [];
     
     // Limpiar formularios
     document.getElementById('jobProfileForm').reset();
@@ -439,4 +474,351 @@ function startOver() {
     
     // Volver al primer paso
     showStep(1);
+}
+
+// Función para ir directamente a programar entrevistas
+function goToInterviewScheduling() {
+    currentStep = 4;
+    showStep(4);
+    loadInterviewCandidates();
+}
+
+// ========================================
+// FUNCIONES DE PROGRAMACIÓN DE ENTREVISTAS
+// ========================================
+
+function loadInterviewCandidates() {
+    if (!analysisResults.data || !analysisResults.data.selected_candidates) {
+        console.error('No hay candidatos seleccionados para programar entrevistas');
+        return;
+    }
+    
+    selectedCandidatesForInterview = analysisResults.data.selected_candidates;
+    displayInterviewCandidates();
+}
+
+function displayInterviewCandidates() {
+    const container = document.getElementById('interviewCandidatesList');
+    container.innerHTML = '';
+    
+    if (selectedCandidatesForInterview.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No hay candidatos seleccionados para entrevista</p>
+            </div>
+        `;
+        return;
+    }
+    
+    selectedCandidatesForInterview.forEach((candidate, index) => {
+        const candidateCard = document.createElement('div');
+        candidateCard.className = 'card candidate-card selected mb-3';
+        
+        candidateCard.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">${candidate.name}</h5>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-success fs-6">${candidate.match_score}/100</span>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="candidate_${index}" 
+                                   value="${candidate.email}" checked onchange="updateSelectedCandidates()">
+                            <label class="form-check-label" for="candidate_${index}">
+                                Seleccionar
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center text-muted">
+                            <i class="fas fa-envelope me-2"></i>
+                            <small>${candidate.email}</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center text-muted">
+                            <i class="fas fa-phone me-2"></i>
+                            <small>${candidate.phone || 'No disponible'}</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2">Habilidades principales:</h6>
+                    <div class="d-flex flex-wrap gap-1">
+                        ${candidate.skills.slice(0, 5).map(skill => `<span class="badge bg-light text-dark">${skill}</span>`).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(candidateCard);
+    });
+    
+    updateSelectedCandidates();
+}
+
+function updateSelectedCandidates() {
+    const checkboxes = document.querySelectorAll('#interviewCandidatesList input[type="checkbox"]:checked');
+    const selectedEmails = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Update global state
+    selectedCandidatesForInterview = analysisResults.data.selected_candidates.filter(
+        candidate => selectedEmails.includes(candidate.email)
+    );
+    
+    // Update schedule button state
+    const scheduleBtn = document.getElementById('scheduleBtn');
+    scheduleBtn.disabled = selectedCandidatesForInterview.length === 0;
+}
+
+async function loadAvailableSlots() {
+    const dateInput = document.getElementById('interviewDate');
+    const date = dateInput.value;
+    
+    if (!date) {
+        document.getElementById('availableSlots').innerHTML = 
+            '<p class="text-muted text-center">Selecciona una fecha para ver horarios disponibles</p>';
+        return;
+    }
+    
+    try {
+        // Simulate API call to get available slots
+        // In a real implementation, this would call your backend API
+        const slots = generateMockSlots(date);
+        availableSlots = slots;
+        displayAvailableSlots(slots);
+        
+    } catch (error) {
+        console.error('Error loading available slots:', error);
+        document.getElementById('availableSlots').innerHTML = 
+            '<p class="text-danger text-center">Error cargando horarios disponibles</p>';
+    }
+}
+
+function generateMockSlots(date) {
+    // Generate mock time slots for the selected date
+    const slots = [];
+    const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+    
+    times.forEach(time => {
+        slots.push({
+            datetime: `${date}T${time}:00`,
+            date: date,
+            time: time,
+            duration: 60,
+            available: true
+        });
+    });
+    
+    return slots;
+}
+
+function displayAvailableSlots(slots) {
+    const container = document.getElementById('availableSlots');
+    container.innerHTML = '';
+    
+    if (slots.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No hay horarios disponibles para esta fecha</p>';
+        return;
+    }
+    
+    slots.forEach(slot => {
+        const slotButton = document.createElement('button');
+        slotButton.className = 'btn btn-outline-primary btn-sm';
+        slotButton.innerHTML = `
+            <i class="fas fa-clock me-2"></i>
+            ${slot.time}
+        `;
+        slotButton.onclick = () => selectTimeSlot(slot);
+        container.appendChild(slotButton);
+    });
+}
+
+let selectedTimeSlot = null;
+
+function selectTimeSlot(slot) {
+    selectedTimeSlot = slot;
+    
+    // Update UI to show selected slot
+    const buttons = document.querySelectorAll('#availableSlots button');
+    buttons.forEach(btn => {
+        btn.className = 'btn btn-outline-primary btn-sm';
+    });
+    
+    event.target.className = 'btn btn-primary btn-sm';
+    
+    // Enable schedule button
+    const scheduleBtn = document.getElementById('scheduleBtn');
+    scheduleBtn.disabled = false;
+}
+
+async function scheduleSelectedInterviews() {
+    if (!selectedTimeSlot || selectedCandidatesForInterview.length === 0) {
+        alert('Por favor selecciona una fecha, hora y candidatos para programar las entrevistas');
+        return;
+    }
+    
+    const interviewer = document.getElementById('interviewer').value;
+    const location = document.getElementById('interviewLocation').value;
+    const interviewType = document.getElementById('interviewType').value;
+    const notes = document.getElementById('interviewNotes').value;
+    
+    try {
+        // Simulate API call to schedule interviews
+        const newScheduledInterviews = selectedCandidatesForInterview.map(candidate => ({
+            candidate: candidate,
+            interview: {
+                date: selectedTimeSlot.date,
+                time: selectedTimeSlot.time,
+                datetime: selectedTimeSlot.datetime,
+                duration: selectedTimeSlot.duration,
+                type: interviewType,
+                interviewer: interviewer,
+                location: location,
+                notes: notes
+            }
+        }));
+        
+        scheduledInterviews.push(...newScheduledInterviews);
+        
+        // Display scheduled interviews
+        displayScheduledInterviews();
+        
+        // Show success message
+        alert(`✅ ${newScheduledInterviews.length} entrevista(s) programada(s) exitosamente`);
+        
+        // Enable send invitations button
+        document.getElementById('sendInvitationsBtn').disabled = false;
+        
+    } catch (error) {
+        console.error('Error scheduling interviews:', error);
+        alert('Error programando las entrevistas. Por favor intenta nuevamente.');
+    }
+}
+
+function displayScheduledInterviews() {
+    const container = document.getElementById('scheduledInterviewsList');
+    const section = document.getElementById('scheduledInterviewsSection');
+    
+    if (scheduledInterviews.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    container.innerHTML = '';
+    
+    scheduledInterviews.forEach((item, index) => {
+        const interviewCard = document.createElement('div');
+        interviewCard.className = 'card mb-3';
+        
+        interviewCard.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-title mb-1">${item.candidate.name}</h6>
+                        <p class="card-text text-muted mb-2">${item.candidate.email}</p>
+                        <div class="d-flex gap-3 text-muted">
+                            <small><i class="fas fa-calendar me-1"></i> ${item.interview.date}</small>
+                            <small><i class="fas fa-clock me-1"></i> ${item.interview.time}</small>
+                            <small><i class="fas fa-user me-1"></i> ${item.interview.interviewer}</small>
+                            <small><i class="fas fa-map-marker-alt me-1"></i> ${item.interview.location}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-primary">${item.interview.type}</span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="cancelInterview(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(interviewCard);
+    });
+}
+
+function cancelInterview(index) {
+    if (confirm('¿Estás seguro de que quieres cancelar esta entrevista?')) {
+        scheduledInterviews.splice(index, 1);
+        displayScheduledInterviews();
+        
+        if (scheduledInterviews.length === 0) {
+            document.getElementById('sendInvitationsBtn').disabled = true;
+        }
+    }
+}
+
+async function sendInterviewInvitations() {
+    if (scheduledInterviews.length === 0) {
+        alert('No hay entrevistas programadas para enviar invitaciones');
+        return;
+    }
+    
+    try {
+        // Preparar datos para enviar al backend
+        const interviewData = {
+            job_title: jobProfile.title,
+            scheduled_interviews: scheduledInterviews.map(item => ({
+                candidate: {
+                    id: item.candidate.id,
+                    name: item.candidate.name,
+                    email: item.candidate.email,
+                    phone: item.candidate.phone,
+                    cv_text: item.candidate.cv_text,
+                    experience_years: item.candidate.experience_years,
+                    skills: item.candidate.skills,
+                    languages: item.candidate.languages,
+                    education: item.candidate.education,
+                    match_score: item.candidate.match_score,
+                    notes: item.candidate.notes
+                },
+                interview: {
+                    date: item.interview.date,
+                    time: item.interview.time,
+                    datetime: item.interview.datetime,
+                    duration: item.interview.duration,
+                    type: item.interview.type,
+                    interviewer: item.interview.interviewer,
+                    location: item.interview.location,
+                    notes: item.interview.notes
+                }
+            }))
+        };
+        
+        console.log('Enviando datos de entrevistas:', interviewData);
+        
+        // Llamar al endpoint del backend para enviar invitaciones
+        const response = await fetch('/send-interview-invitations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(interviewData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${scheduledInterviews.length} invitación(es) de entrevista enviada(s) exitosamente`);
+            
+            // Opcional: limpiar las entrevistas programadas o mostrar confirmación
+            console.log('Invitaciones enviadas:', result);
+        } else {
+            throw new Error(result.message || 'Error enviando invitaciones');
+        }
+        
+    } catch (error) {
+        console.error('Error sending invitations:', error);
+        alert('Error enviando las invitaciones. Por favor intenta nuevamente.');
+    }
 }

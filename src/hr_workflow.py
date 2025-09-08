@@ -427,6 +427,47 @@ class HRWorkflowAgent:
         
         return scheduled_interviews
 
+    def send_interview_invitations(self, scheduled_interviews: List[Dict[str, Any]], job_title: str) -> Dict[str, bool]:
+        """Envía emails de invitación a entrevistas programadas"""
+        
+        if not scheduled_interviews:
+            print("⚠️ No hay entrevistas programadas para enviar invitaciones")
+            return {}
+        
+        print(f"📧 Enviando invitaciones de entrevista a {len(scheduled_interviews)} candidatos...")
+        
+        # Preparar información de entrevistas para el email
+        interviews_info = {}
+        candidates = []
+        
+        for item in scheduled_interviews:
+            candidate = item["candidate"]
+            interview = item["interview"]
+            
+            candidates.append(candidate)
+            interviews_info[candidate.email] = {
+                "scheduled": True,
+                "date": interview.date.strftime("%Y-%m-%d"),
+                "time": interview.date.strftime("%H:%M"),
+                "duration": interview.duration_minutes,
+                "interviewer": interview.interviewer,
+                "location": interview.location,
+                "type": interview.interview_type,
+                "notes": interview.notes or ""
+            }
+        
+        # Enviar emails con información de entrevistas
+        email_results = self.email_manager.send_bulk_emails(
+            candidates, 
+            template_type="selected", 
+            job_title=job_title,
+            interviews_info=interviews_info
+        )
+        
+        print(f"✅ {sum(email_results.values())} invitaciones de entrevista enviadas")
+        
+        return email_results
+
     def run_workflow(self, job_profile: JobProfile, cv_texts: List[str]) -> Dict[str, Any]:
         processing_state = ProcessingState()
 
@@ -458,7 +499,7 @@ class HRWorkflowAgent:
         matched = matcher.process(candidates)
 
         # ------------------------------
-        # Envío de emails
+        # Envío de emails (sin información de entrevista por ahora)
         # ------------------------------
         email_results = self.email_manager.send_bulk_emails(
             matched["selected"], template_type="selected", job_title=job_profile.title

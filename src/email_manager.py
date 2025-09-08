@@ -30,10 +30,7 @@ class EmailAgent:
                 
                 Tu perfil ha destacado entre todos los candidatos por {highlight_reasons}.
                 
-                Próximos pasos:
-                - Te contactaremos en los próximos días para coordinar una entrevista
-                - La entrevista será {interview_type} y tendrá una duración aproximada de {duration} minutos
-                - Te enviaremos un calendario para que selecciones el horario que mejor te convenga
+                {interview_info}
                 
                 Si tienes alguna pregunta, no dudes en contactarnos.
                 
@@ -88,7 +85,7 @@ class EmailAgent:
     
     def generate_personalized_email(self, candidate: Candidate, template_type: str, 
                                   job_title: str, company_name: str = "Nuestra Empresa",
-                                  **kwargs) -> EmailTemplate:
+                                  interview_info: dict = None, **kwargs) -> EmailTemplate:
         """Genera un email personalizado usando IA"""
         
         base_template = self.email_templates[template_type]
@@ -99,6 +96,7 @@ class EmailAgent:
             "job_title": job_title,
             "company_name": company_name,
             "highlight_reasons": self._generate_highlight_reasons(candidate),
+            "interview_info": self._generate_interview_info(interview_info),
             **kwargs
         }
         
@@ -148,6 +146,40 @@ class EmailAgent:
         
         return " y ".join(reasons) if reasons else "tu perfil profesional"
     
+    def _generate_interview_info(self, interview_info: dict = None) -> str:
+        """Genera información de entrevista para incluir en el email"""
+        if not interview_info:
+            return """
+            Próximos pasos:
+            - Te contactaremos en los próximos días para coordinar una entrevista
+            - La entrevista será técnica y tendrá una duración aproximada de 60 minutos
+            - Te enviaremos un calendario para que selecciones el horario que mejor te convenga
+            """
+        
+        # Si hay información de entrevista programada
+        if interview_info.get('scheduled'):
+            return f"""
+            ENTREVISTA PROGRAMADA:
+            
+            📅 Fecha: {interview_info.get('date', 'Por confirmar')}
+            🕐 Hora: {interview_info.get('time', 'Por confirmar')}
+            ⏱️ Duración: {interview_info.get('duration', 60)} minutos
+            👤 Entrevistador: {interview_info.get('interviewer', 'Equipo de RRHH')}
+            📍 Ubicación: {interview_info.get('location', 'Remoto')}
+            📝 Tipo: {interview_info.get('type', 'Técnica')}
+            
+            {interview_info.get('notes', '')}
+            
+            Por favor confirma tu asistencia respondiendo a este email.
+            """
+        else:
+            return """
+            Próximos pasos:
+            - Te contactaremos en los próximos días para coordinar una entrevista
+            - La entrevista será técnica y tendrá una duración aproximada de 60 minutos
+            - Te enviaremos un calendario para que selecciones el horario que mejor te convenga
+            """
+    
     def send_email(self, to_email: str, email_template: EmailTemplate) -> bool:
         """Envía un email usando SMTP"""
         try:
@@ -175,13 +207,19 @@ class EmailAgent:
             return False
     
     def send_bulk_emails(self, candidates: List[Candidate], template_type: str,
-                        job_title: str, company_name: str = "Nuestra Empresa") -> Dict[str, bool]:
+                        job_title: str, company_name: str = "Nuestra Empresa",
+                        interviews_info: Dict[str, dict] = None) -> Dict[str, bool]:
         """Envía emails en lote a múltiples candidatos"""
         results = {}
         
         for candidate in candidates:
+            # Obtener información de entrevista para este candidato
+            candidate_interview_info = None
+            if interviews_info and candidate.email in interviews_info:
+                candidate_interview_info = interviews_info[candidate.email]
+            
             email_template = self.generate_personalized_email(
-                candidate, template_type, job_title, company_name
+                candidate, template_type, job_title, company_name, candidate_interview_info
             )
             
             success = self.send_email(candidate.email, email_template)

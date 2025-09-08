@@ -424,6 +424,108 @@ async def download_report(report_type: str):
     return FileResponse(filename, filename=filename)
 
 # =============================================================================
+# ENDPOINT PARA ENVÍO DE INVITACIONES DE ENTREVISTAS
+# =============================================================================
+
+@app.post("/send-interview-invitations")
+async def send_interview_invitations(request: dict):
+    """
+    Envía invitaciones de entrevistas a candidatos programados.
+    
+    Este endpoint recibe la información de entrevistas programadas y envía
+    emails personalizados con los detalles específicos de cada entrevista.
+    
+    Args:
+        request (dict): Datos de la solicitud que incluyen:
+            - job_title: Título del puesto
+            - scheduled_interviews: Lista de entrevistas programadas
+    
+    Returns:
+        dict: Resultado del envío con:
+            - success: bool - Indica si el envío fue exitoso
+            - message: str - Mensaje descriptivo
+            - emails_sent: int - Número de emails enviados
+            - details: dict - Detalles del envío
+    """
+    if not hr_workflow:
+        raise HTTPException(
+            status_code=500, 
+            detail="Workflow no inicializado. Verifica que OPENAI_API_KEY esté configurada correctamente."
+        )
+    
+    try:
+        # Extraer datos de la solicitud
+        job_title = request.get("job_title", "Puesto de Trabajo")
+        scheduled_interviews_data = request.get("scheduled_interviews", [])
+        
+        if not scheduled_interviews_data:
+            raise HTTPException(status_code=400, detail="No hay entrevistas programadas para enviar")
+        
+        print(f"📧 Procesando envío de invitaciones para {len(scheduled_interviews_data)} entrevistas")
+        
+        # Convertir datos a objetos del sistema
+        from src.models import Candidate, InterviewSchedule
+        from datetime import datetime
+        
+        scheduled_interviews = []
+        
+        for item in scheduled_interviews_data:
+            # Crear objeto Candidate
+            candidate_data = item["candidate"]
+            candidate = Candidate(
+                id=candidate_data["id"],
+                name=candidate_data["name"],
+                email=candidate_data["email"],
+                phone=candidate_data.get("phone"),
+                cv_text=candidate_data["cv_text"],
+                experience_years=candidate_data["experience_years"],
+                skills=candidate_data["skills"],
+                languages=candidate_data["languages"],
+                education=candidate_data["education"],
+                match_score=candidate_data["match_score"],
+                notes=candidate_data.get("notes")
+            )
+            
+            # Crear objeto InterviewSchedule
+            interview_data = item["interview"]
+            interview = InterviewSchedule(
+                candidate_id=candidate.id,
+                date=datetime.fromisoformat(interview_data["datetime"].replace('Z', '+00:00')),
+                duration_minutes=interview_data["duration"],
+                interview_type=interview_data["type"],
+                interviewer=interview_data["interviewer"],
+                location=interview_data["location"],
+                notes=interview_data.get("notes")
+            )
+            
+            scheduled_interviews.append({
+                "candidate": candidate,
+                "interview": interview
+            })
+        
+        # Enviar invitaciones usando el workflow
+        email_results = hr_workflow.send_interview_invitations(scheduled_interviews, job_title)
+        
+        # Preparar respuesta
+        emails_sent = sum(email_results.values())
+        
+        return {
+            "success": True,
+            "message": f"Invitaciones de entrevista enviadas exitosamente",
+            "emails_sent": emails_sent,
+            "details": {
+                "total_interviews": len(scheduled_interviews),
+                "emails_successful": emails_sent,
+                "emails_failed": len(scheduled_interviews) - emails_sent,
+                "email_results": email_results
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Error enviando invitaciones: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error enviando invitaciones: {str(e)}")
+
+# =============================================================================
 # PUNTO DE ENTRADA DE LA APLICACIÓN
 # =============================================================================
 

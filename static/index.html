@@ -52,6 +52,7 @@
                                 <span class="badge bg-success" id="step1Badge">1. Perfil del Puesto</span>
                                 <span class="badge bg-secondary" id="step2Badge">2. Cargar CVs</span>
                                 <span class="badge bg-secondary" id="step3Badge">3. Resultados</span>
+                                <span class="badge bg-secondary" id="step4Badge">4. Programar Entrevistas</span>
                             </div>
                         </div>
 
@@ -299,12 +300,153 @@ Experiencia con Docker y CI/CD</textarea>
                                                 <i class="fas fa-download me-2"></i>
                                                 Descargar Excel
                                             </button>
+                                            <button type="button" class="btn btn-warning" onclick="goToInterviewScheduling()" id="scheduleInterviewsBtn">
+                                                <i class="fas fa-calendar-alt me-2"></i>
+                                                Programar Entrevistas
+                                            </button>
                                             <button type="button" class="btn btn-primary" onclick="startOver()">
                                                 <i class="fas fa-redo me-2"></i>
                                                 Nuevo Análisis
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Step 4: Interview Scheduling -->
+                        <section class="step-section p-4" id="step4" style="display: none;">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="h3 mb-4 text-primary">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Programar Entrevistas
+                                    </h2>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Candidates for Interview -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h4 class="h5 text-success mb-3">
+                                        <i class="fas fa-users me-2"></i>
+                                        Candidatos Seleccionados para Entrevista
+                                    </h4>
+                                    <div id="interviewCandidatesList"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Calendar and Time Selection -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-calendar me-2"></i>
+                                                Seleccionar Fecha
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="interviewDate" class="form-label">Fecha de la entrevista:</label>
+                                                <input type="date" class="form-control" id="interviewDate" min="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="interviewType" class="form-label">Tipo de entrevista:</label>
+                                                <select class="form-select" id="interviewType">
+                                                    <option value="technical">Técnica</option>
+                                                    <option value="hr">Recursos Humanos</option>
+                                                    <option value="final">Final</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-clock me-2"></i>
+                                                Horarios Disponibles
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="availableSlots" class="d-grid gap-2">
+                                                <p class="text-muted text-center">Selecciona una fecha para ver horarios disponibles</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Interview Details -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Detalles de la Entrevista
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label for="interviewer" class="form-label">Entrevistador:</label>
+                                                    <input type="text" class="form-control" id="interviewer" value="Equipo de RRHH">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="interviewLocation" class="form-label">Ubicación:</label>
+                                                    <select class="form-select" id="interviewLocation">
+                                                        <option value="Remoto">Remoto</option>
+                                                        <option value="Presencial">Presencial</option>
+                                                        <option value="Híbrido">Híbrido</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label for="interviewNotes" class="form-label">Notas adicionales:</label>
+                                                    <textarea class="form-control" id="interviewNotes" rows="3" 
+                                                              placeholder="Información adicional sobre la entrevista..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Scheduled Interviews Summary -->
+                            <div class="row mb-4" id="scheduledInterviewsSection" style="display: none;">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-warning text-dark">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-calendar-check me-2"></i>
+                                                Entrevistas Programadas
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="scheduledInterviewsList"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="prevStep()">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Anterior
+                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success btn-lg px-4" onclick="scheduleSelectedInterviews()" id="scheduleBtn" disabled>
+                                        <i class="fas fa-calendar-plus me-2"></i>
+                                        Programar Entrevistas
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-lg px-4" onclick="sendInterviewInvitations()" id="sendInvitationsBtn" disabled>
+                                        <i class="fas fa-envelope me-2"></i>
+                                        Enviar Invitaciones
+                                    </button>
                                 </div>
                             </div>
                         </section>
