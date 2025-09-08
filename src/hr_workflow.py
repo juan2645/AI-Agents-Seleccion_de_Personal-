@@ -2,11 +2,13 @@ from typing import List, Dict, Any
 from src.models import JobProfile, Candidate
 from .email_manager import EmailAgent
 from .report_generator import ReportAgent
+from .calendar_manager import CalendarAgent
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import os, json
 import re
 import uuid
+from datetime import datetime, timedelta
 
 # ------------------------------
 # Estado del proceso
@@ -16,6 +18,7 @@ class ProcessingState:
         self.emails_sent = 0
         self.interviews_scheduled = 0
         self.candidates_processed = 0
+        self.scheduled_interviews = []  # Lista de entrevistas programadas
 
 # ------------------------------
 # Agentes
@@ -354,16 +357,75 @@ class HRWorkflowAgent:
     def __init__(self, openai_api_key: str, smtp_config: Dict[str, Any], calendar_config: Dict[str, Any] = None):
         self.openai_api_key = openai_api_key
         self.smtp_config = smtp_config
-        self.calendar_config = calendar_config
+        self.calendar_config = calendar_config or {}
         self._id_counter = 1
         self.cv_agent = CVReaderAgent()
         self.email_manager = EmailAgent(openai_api_key, smtp_config)
         self.report_agent = ReportAgent()
+        self.calendar_agent = CalendarAgent(calendar_config) if calendar_config else None
 
     def _next_id(self) -> int:
         val = self._id_counter
         self._id_counter += 1
         return val
+
+    def schedule_interviews(self, selected_candidates: List[Candidate], 
+                          interview_type: str = "technical", 
+                          days_ahead: int = 7) -> List[Dict[str, Any]]:
+        """Programa entrevistas automáticamente para candidatos seleccionados"""
+        
+        if not self.calendar_agent:
+            print("⚠️ CalendarAgent no configurado. Saltando programación de entrevistas.")
+            return []
+        
+        print(f"📅 Programando entrevistas para {len(selected_candidates)} candidatos...")
+        
+        scheduled_interviews = []
+        start_date = datetime.now() + timedelta(days=1)  # Empezar mañana
+        
+        # Obtener slots disponibles
+        available_slots = self.calendar_agent.get_available_slots(start_date, days_ahead)
+        
+        if not available_slots:
+            print("❌ No hay slots disponibles para programar entrevistas")
+            return []
+        
+        print(f"✅ Encontrados {len(available_slots)} slots disponibles")
+        
+        # Programar entrevistas para los candidatos seleccionados
+        for i, candidate in enumerate(selected_candidates):
+            if i >= len(available_slots):
+                print(f"⚠️ Solo hay {len(available_slots)} slots disponibles para {len(selected_candidates)} candidatos")
+                break
+            
+            slot = available_slots[i]
+            
+            try:
+                # Programar la entrevista
+                interview = self.calendar_agent.schedule_interview(
+                    candidate=candidate,
+                    preferred_date=slot["datetime"],
+                    interview_type=interview_type,
+                    interviewer="Equipo de RRHH",
+                    location="Remoto"
+                )
+                
+                # Enviar invitación por email
+                email_sent = self.calendar_agent.send_calendar_invitation(interview, candidate)
+                
+                scheduled_interviews.append({
+                    "candidate": candidate,
+                    "interview": interview,
+                    "email_sent": email_sent,
+                    "slot": slot
+                })
+                
+                print(f"  ✅ Entrevista programada para {candidate.name}: {slot['date']} a las {slot['time']}")
+                
+            except Exception as e:
+                print(f"  ❌ Error programando entrevista para {candidate.name}: {str(e)}")
+        
+        return scheduled_interviews
 
     def run_workflow(self, job_profile: JobProfile, cv_texts: List[str]) -> Dict[str, Any]:
         processing_state = ProcessingState()
@@ -404,6 +466,23 @@ class HRWorkflowAgent:
         processing_state.emails_sent = sum(email_results.values())
 
         # ------------------------------
+        # Programación de entrevistas
+        # ------------------------------
+        if matched["selected"] and self.calendar_agent:
+            print(f"📅 Programando entrevistas para {len(matched['selected'])} candidatos seleccionados...")
+            scheduled_interviews = self.schedule_interviews(
+                matched["selected"], 
+                interview_type="technical",
+                days_ahead=7
+            )
+            processing_state.interviews_scheduled = len(scheduled_interviews)
+            processing_state.scheduled_interviews = scheduled_interviews
+        else:
+            print("⚠️ No hay candidatos seleccionados o CalendarAgent no configurado")
+            processing_state.interviews_scheduled = 0
+            processing_state.scheduled_interviews = []
+
+        # ------------------------------
         # Generación de reportes
         # ------------------------------
         os.makedirs("reports", exist_ok=True)
@@ -427,6 +506,7 @@ class HRWorkflowAgent:
             "selected_candidates": matched["selected"],
             "rejected_candidates": matched["rejected"],
             "processing_state": processing_state,
+            "scheduled_interviews": processing_state.scheduled_interviews,
             "report_files": {
                 "summary": "reports/reporte_resumen.txt",
                 "detailed": "reports/reporte_detallado.json",
