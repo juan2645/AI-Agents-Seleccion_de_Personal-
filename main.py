@@ -473,7 +473,7 @@ async def send_interview_invitations(request: dict):
             # Crear objeto Candidate
             candidate_data = item["candidate"]
             candidate = Candidate(
-                id=candidate_data["id"],
+                id=candidate_data.get("id", f"temp_{len(scheduled_interviews)}"),
                 name=candidate_data["name"],
                 email=candidate_data["email"],
                 phone=candidate_data.get("phone"),

@@ -669,8 +669,20 @@ async function scheduleSelectedInterviews() {
     
     try {
         // Simulate API call to schedule interviews
-        const newScheduledInterviews = selectedCandidatesForInterview.map(candidate => ({
-            candidate: candidate,
+        const newScheduledInterviews = selectedCandidatesForInterview.map((candidate, index) => ({
+            candidate: {
+                id: candidate.id || `temp_${Date.now()}_${index}`,
+                name: candidate.name,
+                email: candidate.email,
+                phone: candidate.phone || "",
+                cv_text: candidate.cv_text || "",
+                experience_years: candidate.experience_years || 0,
+                skills: candidate.skills || [],
+                languages: candidate.languages || [],
+                education: candidate.education || [],
+                match_score: candidate.match_score || 0,
+                notes: candidate.notes || ""
+            },
             interview: {
                 date: selectedTimeSlot.date,
                 time: selectedTimeSlot.time,

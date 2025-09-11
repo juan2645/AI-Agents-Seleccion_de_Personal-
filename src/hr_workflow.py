@@ -344,7 +344,7 @@ class HRWorkflowAgent:
         self.cv_agent = CVReaderAgent()
         self.email_manager = EmailAgent(openai_api_key, smtp_config)
         self.report_agent = ReportAgent()
-        self.calendar_agent = CalendarAgent(calendar_config) if calendar_config else None
+        self.calendar_agent = CalendarAgent(calendar_config)
 
     def _next_id(self) -> int:
         val = self._id_counter
@@ -356,9 +356,7 @@ class HRWorkflowAgent:
                           days_ahead: int = 7) -> List[Dict[str, Any]]:
         """Programa entrevistas automáticamente para candidatos seleccionados"""
         
-        if not self.calendar_agent:
-            print("⚠️ CalendarAgent no configurado. Saltando programación de entrevistas.")
-            return []
+        # CalendarAgent siempre está disponible (modo simulación)
         
         print(f"📅 Programando entrevistas para {len(selected_candidates)} candidatos...")
         
@@ -491,7 +489,7 @@ class HRWorkflowAgent:
         # ------------------------------
         # Programación de entrevistas
         # ------------------------------
-        if matched["selected"] and self.calendar_agent:
+        if matched["selected"]:
             print(f"📅 Programando entrevistas para {len(matched['selected'])} candidatos seleccionados...")
             scheduled_interviews = self.schedule_interviews(
                 matched["selected"], 
@@ -501,7 +499,7 @@ class HRWorkflowAgent:
             processing_state.interviews_scheduled = len(scheduled_interviews)
             processing_state.scheduled_interviews = scheduled_interviews
         else:
-            print("⚠️ No hay candidatos seleccionados o CalendarAgent no configurado")
+            print("⚠️ No hay candidatos seleccionados")
             processing_state.interviews_scheduled = 0
             processing_state.scheduled_interviews = []
 
