@@ -181,8 +181,7 @@ class CVReaderAgent:
 class CandidateMatcherAgent:
     """Analizador de CVs usando LangChain y GPT-4"""
     
-    def __init__(self, job_profile: JobProfile, openai_api_key: str):
-        self.job_profile = job_profile
+    def __init__(self, openai_api_key: str):
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.1,
@@ -190,70 +189,68 @@ class CandidateMatcherAgent:
         )
         
         self.cv_analysis_prompt = ChatPromptTemplate.from_messages([
-            ("system", """Eres un experto en análisis de CVs. Analiza el CV del candidato y responde ÚNICAMENTE con un JSON válido.
-
-INSTRUCCIONES:
-1. Extrae la información del CV
-2. Calcula un puntaje de 0-100 basado en qué tan bien se ajusta al perfil del trabajo
-3. Responde SOLO con el JSON, sin texto adicional
-
-CAMPOS REQUERIDOS:
-- name: nombre completo del candidato
-- email: email del candidato
-- phone: teléfono (si existe, sino "")
-- experience_years: años de experiencia laboral (número entero)
-- skills: lista de habilidades técnicas encontradas
-- languages: lista de idiomas
-- education: lista de títulos académicos
-- match_score: puntaje de 0-100 (número entero)
-- match_reasons: lista de razones por las que califica
-- mismatch_reasons: lista de razones por las que no califica
-
-FORMATO JSON EXACTO:
-{
-  "name": "Nombre Completo",
-  "email": "email@ejemplo.com",
-  "phone": "teléfono o vacío",
-  "experience_years": 3,
-  "skills": ["Python", "Django", "PostgreSQL"],
-  "languages": ["Español", "Inglés"],
-  "education": ["Ingeniería en Sistemas"],
-  "match_score": 85,
-  "match_reasons": ["Tiene experiencia en Python", "Conoce Django"],
-  "mismatch_reasons": ["Falta experiencia en AWS"]
-}"""),
-            ("human", """PERFIL DEL TRABAJO:
-Título: {job_title}
-Requisitos: {job_requirements}
-Habilidades requeridas: {job_skills}
-Años de experiencia requeridos: {job_experience_years}
-Idiomas requeridos: {job_languages}
-
-CV DEL CANDIDATO:
-{cv_text}
-
-Responde con el JSON de análisis:""")
+            ("system", """Analiza el CV y responde SOLO con un JSON válido. Extrae:
+            - name: nombre del candidato
+            - email: email del candidato  
+            - phone: teléfono si existe
+            - experience_years: años de experiencia calculados
+            - skills: lista de habilidades técnicas
+            - languages: idiomas que habla
+            - education: títulos académicos
+            - match_score: puntaje de 0-100
+            - match_reasons: razones por las que califica
+            - mismatch_reasons: razones por las que no califica
+            
+            Formato JSON requerido:
+            {{"name": "Nombre", "email": "email@ejemplo.com", "phone": "teléfono", "experience_years": 2, "skills": ["Python"], "languages": ["Español"], "education": ["Título"], "match_score": 75, "match_reasons": ["Tiene Python"], "mismatch_reasons": ["Falta experiencia"]}}
+            """),
+            ("human", """
+            Perfil del trabajo:
+            Título: {job_title}
+            Requisitos: {job_requirements}
+            Habilidades requeridas: {job_skills}
+            Años de experiencia: {job_experience_years}
+            Idiomas: {job_languages}
+            
+            CV del candidato:
+            {cv_text}
+            """)
         ])
 
-    def analyze_cv(self, cv_text: str) -> Candidate:
+    def analyze_cv(self, cv_text: str, job_profile: JobProfile) -> Candidate:
         """Analiza un CV y retorna un objeto Candidate con IA"""
         
         try:
-            # Preparar el prompt con la información del perfil
-            prompt_vars = {
-                "job_title": self.job_profile.title,
-                "job_requirements": ", ".join(self.job_profile.requirements),
-                "job_skills": ", ".join(self.job_profile.skills),
-                "job_experience_years": str(self.job_profile.experience_years),
-                "job_languages": ", ".join(self.job_profile.languages),
-                "cv_text": cv_text
-            }
+            print(f"🔍 Analizando CV con IA...")
+            
+            # Crear un prompt más simple
+            prompt = f"""
+Analiza este CV y responde con un JSON válido:
+
+Perfil del trabajo: {job_profile.title}
+Habilidades requeridas: {', '.join(job_profile.skills)}
+Años de experiencia requeridos: {job_profile.experience_years}
+
+CV:
+{cv_text}
+
+Responde SOLO con este JSON:
+{{
+  "name": "Nombre del candidato",
+  "email": "email@ejemplo.com",
+  "phone": "teléfono o vacío",
+  "experience_years": 2,
+  "skills": ["Python", "Django"],
+  "languages": ["Español", "Inglés"],
+  "education": ["Título universitario"],
+  "match_score": 75,
+  "match_reasons": ["Tiene Python"],
+  "mismatch_reasons": ["Falta experiencia"]
+}}
+"""
             
             # Generar respuesta del LLM
-            messages = self.cv_analysis_prompt.format_messages(**prompt_vars)
-            response = self.llm.invoke(messages)
-            
-            print(f"🔍 Analizando CV con IA...")
+            response = self.llm.invoke(prompt)
             
             # Limpiar la respuesta para extraer solo el JSON
             content = response.content.strip()
@@ -269,40 +266,24 @@ Responde con el JSON de análisis:""")
             json_str = content[start_idx:end_idx]
             print(f"🔍 JSON extraído: {json_str[:200]}...")
             
-            # Limpiar el JSON de caracteres problemáticos
-            json_str = json_str.replace('\n', '').replace('\r', '').strip()
-            
-            # Intentar parsear la respuesta JSON
-            try:
-                analysis = json.loads(json_str)
-            except json.JSONDecodeError as e:
-                print(f"⚠️ Error parseando JSON: {e}")
-                # Intentar con una limpieza más agresiva
-                import re
-                # Remover caracteres no válidos para JSON
-                json_str = re.sub(r'[^\x20-\x7E]', '', json_str)
-                analysis = json.loads(json_str)
-            
-            # Validar que todos los campos requeridos estén presentes
-            required_fields = ["name", "email", "experience_years", "skills", "languages", "education", "match_score", "match_reasons", "mismatch_reasons"]
-            for field in required_fields:
-                if field not in analysis:
-                    analysis[field] = "" if field in ["phone"] else [] if field in ["skills", "languages", "education", "match_reasons", "mismatch_reasons"] else 0
+            # Parsear la respuesta JSON
+            analysis = json.loads(json_str)
+            print(f"✅ JSON parseado exitosamente")
             
             # Crear objeto Candidate
             candidate = Candidate(
-                id=self._generate_candidate_id(analysis["name"]),
-                name=analysis["name"],
-                email=analysis["email"],
-                phone=analysis.get("phone"),
+                id=self._generate_candidate_id(analysis.get("name", "Unknown")),
+                name=analysis.get("name", "Unknown"),
+                email=analysis.get("email", "unknown@example.com"),
+                phone=analysis.get("phone", ""),
                 cv_text=cv_text,
-                experience_years=analysis["experience_years"],
-                skills=analysis["skills"],
-                languages=analysis["languages"],
-                education=analysis["education"],
-                match_score=analysis["match_score"],
-                notes=f"Razones de match: {', '.join(analysis['match_reasons'])}. "
-                      f"Razones de no match: {', '.join(analysis['mismatch_reasons'])}"
+                experience_years=analysis.get("experience_years", 0),
+                skills=analysis.get("skills", []),
+                languages=analysis.get("languages", []),
+                education=analysis.get("education", []),
+                match_score=analysis.get("match_score", 0),
+                notes=f"Razones de match: {', '.join(analysis.get('match_reasons', []))}. "
+                      f"Razones de no match: {', '.join(analysis.get('mismatch_reasons', []))}"
             )
             
             return candidate
@@ -314,6 +295,7 @@ Responde con el JSON de análisis:""")
                 id=self._generate_candidate_id("Unknown"),
                 name="Unknown",
                 email="unknown@example.com",
+                phone="",
                 cv_text=cv_text,
                 experience_years=0,
                 skills=[],
@@ -328,7 +310,7 @@ Responde con el JSON de análisis:""")
         clean_name = re.sub(r'[^a-zA-Z0-9]', '', name.lower())
         return f"{clean_name}_{str(uuid.uuid4())[:8]}"
     
-    def process(self, candidates: List[Candidate], threshold: float = 70.0) -> Dict[str, List[Candidate]]:
+    def process(self, candidates: List[Candidate], job_profile: JobProfile, threshold: float = 70.0) -> Dict[str, List[Candidate]]:
         """Procesa candidatos con análisis IA y los clasifica"""
         print(f"🤖 Procesando {len(candidates)} candidatos con IA...")
         
@@ -336,7 +318,7 @@ Responde con el JSON de análisis:""")
         analyzed_candidates = []
         for i, candidate in enumerate(candidates, 1):
             print(f"  📊 Analizando candidato {i}/{len(candidates)}: {candidate.name}")
-            analyzed_candidate = self.analyze_cv(candidate.cv_text)
+            analyzed_candidate = self.analyze_cv(candidate.cv_text, job_profile)
             analyzed_candidates.append(analyzed_candidate)
         
         # Ordenar por puntaje de match
@@ -495,8 +477,8 @@ class HRWorkflowAgent:
         # ------------------------------
         # Scoring y selección con IA
         # ------------------------------
-        matcher = CandidateMatcherAgent(job_profile, self.openai_api_key)
-        matched = matcher.process(candidates)
+        matcher = CandidateMatcherAgent(self.openai_api_key)
+        matched = matcher.process(candidates, job_profile)
 
         # ------------------------------
         # Envío de emails (sin información de entrevista por ahora)
