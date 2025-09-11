@@ -477,7 +477,7 @@ async def send_interview_invitations(request: dict):
                 name=candidate_data["name"],
                 email=candidate_data["email"],
                 phone=candidate_data.get("phone"),
-                cv_text=candidate_data["cv_text"],
+                cv_text=candidate_data.get("cv_text", ""),
                 experience_years=candidate_data["experience_years"],
                 skills=candidate_data["skills"],
                 languages=candidate_data["languages"],
@@ -536,4 +536,4 @@ if __name__ == "__main__":
     Inicia el servidor FastAPI en el puerto 8000.
     """
     print("🌐 Iniciando servidor API...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=3000)
