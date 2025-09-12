@@ -74,17 +74,10 @@ class CVReaderAgent:
         cv_files = self.get_cv_files()
         cvs = []
         
-        print(f"📁 Buscando CVs en la carpeta: {self.cv_folder}")
-        print(f"📄 Archivos encontrados: {len(cv_files)}")
-        
         for file_path in cv_files:
-            print(f"  📖 Leyendo: {os.path.basename(file_path)}")
             cv_data = self.read_cv_file(file_path)
             if cv_data['text']:
                 cvs.append(cv_data)
-                print(f"    ✅ Extraído: {len(cv_data['text'])} caracteres")
-            else:
-                print(f"    ❌ Error al leer el archivo")
         
         return cvs
     

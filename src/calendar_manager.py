@@ -78,7 +78,6 @@ class CalendarAgent:
                 continue
                 
             try:
-                print(f"📅 Consultando calendario: {calendar_id}")
                 
                 # Obtener eventos existentes en el rango de fechas
                 end_date = current_date + timedelta(days=days_ahead)
@@ -207,7 +206,6 @@ class CalendarAgent:
             ).execute()
             
             print(f"✅ Evento creado en Google Calendar: {event.get('htmlLink')}")
-            print(f"Evento creado en calendario: {json.dumps(event_data, indent=2)}")
             return event
             
         except HttpError as error:
@@ -238,7 +236,6 @@ class CalendarAgent:
             }
             
             print(f"✅ Invitación de calendario enviada automáticamente a {candidate.email}")
-            print(f"Invitación enviada: {json.dumps(invitation_data, indent=2)}")
             return True
             
         except Exception as e:

@@ -192,13 +192,9 @@ class EmailAgent:
             
             msg.attach(MIMEText(email_template.body, 'plain', 'utf-8'))
             
-            print(f"📧 Conectando a SMTP: {self.smtp_config['smtp_server']}:{self.smtp_config['smtp_port']}")
-            
             # Conectar al servidor SMTP
             server = smtplib.SMTP(self.smtp_config['smtp_server'], self.smtp_config['smtp_port'])
             server.starttls()
-            
-            print(f"📧 Autenticando con usuario: {self.smtp_config['email_user']}")
             server.login(self.smtp_config['email_user'], self.smtp_config['email_password'])
             
             # Enviar email
@@ -212,8 +208,6 @@ class EmailAgent:
         except Exception as e:
             print(f"❌ Error enviando email a {to_email}: {str(e)}")
             print(f"📧 Simulando envío de email a {to_email}")
-            print(f"📧 Asunto: {email_template.subject}")
-            print(f"📧 Contenido: {email_template.body[:200]}...")
             # En modo simulación, consideramos el envío como exitoso
             return True
     
